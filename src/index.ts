@@ -19,7 +19,7 @@ type CreateCheckout = {
     line_items?: CreateCheckoutLineItem;
 };
 
-class ShopifyStorefront {
+export class ShopifyStorefront {
     private readonly instance;
 
     constructor(options: Options) {
