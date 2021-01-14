@@ -1,9 +1,12 @@
 {
   "compilerOptions": {
     "module": "commonjs",
+    "moduleResolution": "node",
+    "lib": ["es5", "es6"],
     "target": "es2020",
     "sourceMap": false,
     "experimentalDecorators": true,
+    "removeComments": true,
     "declaration": true,
     "rootDir": "src",
     "outDir": "lib"

@@ -6,18 +6,18 @@ type Options = {
     accessToken: string;
 };
 
-type ShopName = string;
-type Shop = {
-    name?: ShopName;
-};
+// type ShopName = string;
+// type Shop = {
+//     name?: ShopName;
+// };
 
 type ProductId = number;
 type ProductVariantId = number;
 
-type CreateCheckoutLineItem = {};
-type CreateCheckout = {
-    line_items?: CreateCheckoutLineItem;
-};
+// type CreateCheckoutLineItem = {};
+// type CreateCheckout = {
+//     line_items?: CreateCheckoutLineItem;
+// };
 
 type CheckoutWebUrl = string;
 type Checkout = {
