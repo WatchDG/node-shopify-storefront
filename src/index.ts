@@ -19,6 +19,11 @@ type CreateCheckout = {
     line_items?: CreateCheckoutLineItem;
 };
 
+type CheckoutWebUrl = string;
+type Checkout = {
+    webUrl?: CheckoutWebUrl;
+}
+
 export class ShopifyStorefront {
     private readonly instance;
 
@@ -54,7 +59,7 @@ export class ShopifyStorefront {
     async getProductVariant(productVariantId: ProductVariantId): Promise<ResultOK<any> | ResultFAIL<Error>> {
         const gid = `gid://shopify/ProductVariant/${productVariantId}`;
         const id = Buffer.from(gid).toString('base64');
-        const query = `{\n\tproduct_variant: node(id: "${id}"){\n\t\t... on ProductVariant {\n\t\t\ttitle\n\t\t}\n\t}\n}`;
+        const query = `{\n\tproductVariant: node(id: "${id}"){\n\t\t... on ProductVariant {\n\t\t\ttitle\n\t\t}\n\t}\n}`;
         console.log(query)
         const {status, data} = (await this.instance.post('', query))
         console.log(data.data);
@@ -62,7 +67,7 @@ export class ShopifyStorefront {
     }
 
     @tryCatchWrapperAsync
-    async createCheckout(createCheckout: {[Key: string]: string}): Promise<ResultOK<any> | ResultFAIL<Error>>{
+    async createCheckout(createCheckout: {[Key: string]: string}): Promise<ResultOK<Checkout> | ResultFAIL<Error>>{
         const query = `mutation checkoutCreate($input: CheckoutCreateInput!){\n\tcheckout: checkoutCreate(input: $input){\n\t\tcheckout{\n\t\t\tid\n\t\t\twebUrl\n\t\t}\n\t\tcheckoutUserErrors{\n\t\t\tcode\n\t\t\tfield\n\t\t\tmessage\n\t\t}\n\t}\n}`;
         const variables = {
             input: createCheckout
@@ -73,7 +78,6 @@ export class ShopifyStorefront {
                 'Content-Type': 'application/json'
             }
         };
-        console.log(payload);
         const {data} = (await this.instance.post('', payload,options)).unwrap();
         return ResultOk(data.data.checkout.checkout);
     }
