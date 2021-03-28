@@ -1,84 +1,132 @@
-import {ResultOK, ResultFAIL, ResultOk, tryCatchWrapperAsync} from "node-result";
+import {ResultOK, ResultFAIL, ResultOk, tryCatchWrapperAsync, ResultFail, ReturningResultAsync} from "node-result";
 import {HttpInstance} from "http-instance";
 
+import {Checkout, CheckoutId, FieldCheckout} from "./types/checkout";
+
 type Options = {
-    endpoint: string;
+    baseUrl: string;
     accessToken: string;
 };
-
-// type ShopName = string;
-// type Shop = {
-//     name?: ShopName;
-// };
-
-type ProductId = number;
-type ProductVariantId = number;
-
-// type CreateCheckoutLineItem = {};
-// type CreateCheckout = {
-//     line_items?: CreateCheckoutLineItem;
-// };
-
-type CheckoutWebUrl = string;
-type Checkout = {
-    webUrl?: CheckoutWebUrl;
-}
 
 export class ShopifyStorefront {
     private readonly instance;
 
     constructor(options: Options) {
+        const {baseUrl, accessToken} = options;
         this.instance = new HttpInstance({
-            baseUrl: options.endpoint,
+            baseUrl,
             headers: {
-                'X-Shopify-Storefront-Access-Token': options.accessToken,
-                'Content-Type': 'application/graphql'
+                'X-Shopify-Storefront-Access-Token': accessToken
             }
         })
     }
 
-    @tryCatchWrapperAsync
-    async getShop(): Promise<ResultOK<any> | ResultFAIL<Error>>{
-        const query = `{\n\tshop {\n\t\tname\n\t}\n}`;
-        const {data} = (await this.instance.post('', query)).unwrap();
-        return ResultOk(data.data.shop);
+    private static prepareQuery(rawQuery: any[], indent = '') {
+        const result = [];
+        rawQuery.forEach((item) => {
+            if (typeof item === 'string') {
+                result.push(`${indent}${item}`);
+            } else {
+                result.push(ShopifyStorefront.prepareQuery(item, `${indent}\t`));
+            }
+        });
+        return result.join(`\n`);
+    }
+
+    private static checkResponse(data) {
+        if (data.errors) {
+            return ResultFail(data.errors[0].message);
+        }
+        return ResultOk(data.data);
     }
 
     @tryCatchWrapperAsync
-    async getProduct(productId: ProductId): Promise<ResultOK<any> | ResultFAIL<Error>> {
-        const gid = `gid://shopify/Product/${productId}`;
-        const id = Buffer.from(gid).toString('base64');
-        const query = `{\n\tproduct: node(id: "${id}"){\n\t\t... on Product {\n\t\t\ttitle\n\t\t}\n\t}\n}`;
-        console.log(query)
-        const {data} = (await this.instance.post('', query))
-        console.log(data.data);
-        return ResultOk(null);
-    }
+    async createCheckout(createCheckout: { [Key: string]: unknown }, fields: FieldCheckout[]): Promise<ResultOK<Checkout> | ResultFAIL<Error>> {
 
-    @tryCatchWrapperAsync
-    async getProductVariant(productVariantId: ProductVariantId): Promise<ResultOK<any> | ResultFAIL<Error>> {
-        const gid = `gid://shopify/ProductVariant/${productVariantId}`;
-        const id = Buffer.from(gid).toString('base64');
-        const query = `{\n\tproductVariant: node(id: "${id}"){\n\t\t... on ProductVariant {\n\t\t\ttitle\n\t\t}\n\t}\n}`;
-        console.log(query)
-        const {status, data} = (await this.instance.post('', query))
-        console.log(data.data);
-        return ResultOk(null);
-    }
+        const rawQuery = [
+            'mutation checkoutCreate($input: CheckoutCreateInput!){',
+            [
+                'checkoutCreate(input: $input){',
+                [
+                    'checkout{',
+                    [
+                        ...fields,
+                        'availableShippingRates{',
+                        [
+                            'ready'
+                        ],
+                        '}'
+                    ],
+                    '}',
+                    'checkoutUserErrors{',
+                    [
+                        'code',
+                        'field',
+                        'message'
+                    ],
+                    '}'
+                ],
+                '}'
+            ],
+            '}'
+        ];
 
-    @tryCatchWrapperAsync
-    async createCheckout(createCheckout: {[Key: string]: string}): Promise<ResultOK<Checkout> | ResultFAIL<Error>>{
-        const query = `mutation checkoutCreate($input: CheckoutCreateInput!){\n\tcheckout: checkoutCreate(input: $input){\n\t\tcheckout{\n\t\t\tid\n\t\t\twebUrl\n\t\t}\n\t\tcheckoutUserErrors{\n\t\t\tcode\n\t\t\tfield\n\t\t\tmessage\n\t\t}\n\t}\n}`;
+        const query = ShopifyStorefront.prepareQuery(rawQuery);
+
         const variables = {
             input: createCheckout
         };
-        const payload = JSON.stringify({query, variables});
-        const options = {
-            headers: {
-                'Content-Type': 'application/json'
-            }
-        };
-        const {data} = (await this.instance.post('', payload,options)).unwrap();
-        return ResultOk(data.data.checkout.checkout);
+
+        const payload = {query, variables};
+
+        const {data} = (await this.instance.post('/api/2021-01/graphql.json', payload)).unwrap();
+
+        const response = (await ShopifyStorefront.checkResponse(data)).unwrap();
+
+        return ResultOk(response.checkoutCreate.checkout);
+    }
+
+    @tryCatchWrapperAsync
+    async getCheckout(checkoutId: CheckoutId): ReturningResultAsync<Checkout, Error> {
+
+        const rawQuery = [
+            '{',
+            [
+                `node(id: "${checkoutId}"){`,
+                [
+                    '... on Checkout {',
+                    [
+                        'availableShippingRates{',
+                        [
+                            'ready',
+                            'shippingRates{',
+                            [
+                                '... on ShippingRate{',
+                                [
+                                    'handle',
+                                    'title'
+                                ],
+                                '}'
+                            ],
+                            '}'
+                        ],
+                        '}'
+                    ],
+                    '}'
+                ],
+                '}'
+            ],
+            '}'
+        ];
+
+        const query = ShopifyStorefront.prepareQuery(rawQuery);
+
+        const payload = {query};
+
+        const {data} = (await this.instance.post('/api/2021-01/graphql.json', payload)).unwrap();
+
+        const response = (await ShopifyStorefront.checkResponse(data)).unwrap();
+
+        return ResultOk(response.node);
     }
 }

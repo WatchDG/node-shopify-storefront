@@ -12,26 +12,27 @@
     "email": "baranov@w3m.co"
   },
   "repository": "github:WatchDG/node-shopify-storefront",
-  "private": false,
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
   "files": [
     "lib/**/*"
   ],
   "scripts": {
-    "build": "npx tsc",
     "lint": "eslint --ext=ts src",
+    "build": "npx tsc",
+    "run": "npx ts-node src/index.ts",
     "prepare": "npm run build"
   },
   "dependencies": {
-    "http-instance": "^6.0.1",
-    "node-result": "^6.0.1"
+    "http-instance": "^7.0.3",
+    "node-result": "^10.1.0"
   },
   "devDependencies": {
     "@types/node": "^14.14.20",
     "@typescript-eslint/eslint-plugin": "^4.13.0",
     "@typescript-eslint/parser": "^4.13.0",
     "eslint": "^7.17.0",
+    "ts-node": "^9.1.1",
     "typescript": "^4.1.3"
   }
 }
