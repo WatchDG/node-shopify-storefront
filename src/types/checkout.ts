@@ -1,8 +1,16 @@
 export type CheckoutId = string;
 type CheckoutWebUrl = string;
+
+export type CheckoutShippingRateHandle = string;
+type CheckoutShippingRateTitle = string;
+type CheckoutShippingRate = {
+    title: CheckoutShippingRateTitle;
+    handle: CheckoutShippingRateHandle;
+};
+
 type CheckoutAvailableShippingRates = {
     ready?: boolean;
-    shippingRates?: Record<string, any>[];
+    shippingRates?: CheckoutShippingRate[];
 };
 
 export type Checkout = {

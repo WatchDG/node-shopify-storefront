@@ -1,7 +1,7 @@
 import {ResultOK, ResultFAIL, ResultOk, tryCatchWrapperAsync, ResultFail, ReturningResultAsync} from "node-result";
 import {HttpInstance} from "http-instance";
 
-import {Checkout, CheckoutId, FieldCheckout} from "./types/checkout";
+import {Checkout, CheckoutId, CheckoutShippingRateHandle, FieldCheckout} from "./types/checkout";
 
 type Options = {
     baseUrl: string;
@@ -128,5 +128,47 @@ export class ShopifyStorefront {
         const response = (await ShopifyStorefront.checkResponse(data)).unwrap();
 
         return ResultOk(response.node);
+    }
+
+    @tryCatchWrapperAsync
+    async setDeliveryForCheckout(checkoutId: CheckoutId, shippingRateHandle: CheckoutShippingRateHandle, fields: FieldCheckout[]): ReturningResultAsync<Checkout, Error> {
+
+        const rawQuery = [
+            'mutation checkoutShippingLineUpdate($checkoutId: ID!, $shippingRateHandle: String!) {',
+            [
+                'checkoutShippingLineUpdate(checkoutId: $checkoutId, shippingRateHandle: $shippingRateHandle) {',
+                [
+                    'checkout {',
+                    [
+                        ...fields
+                    ],
+                    '}',
+                    'checkoutUserErrors {',
+                    [
+                        'code',
+                        'field',
+                        'message'
+                    ],
+                    '}'
+                ],
+                '}'
+            ],
+            '}'
+        ];
+
+        const query = ShopifyStorefront.prepareQuery(rawQuery);
+
+        const variables = {
+            "checkoutId": checkoutId,
+            "shippingRateHandle": shippingRateHandle
+        };
+
+        const payload = {query, variables};
+
+        const {data} = (await this.instance.post('/api/2021-01/graphql.json', payload)).unwrap();
+
+        const response = (await ShopifyStorefront.checkResponse(data)).unwrap();
+
+        return ResultOk(response.checkoutShippingLineUpdate.checkout);
     }
 }
