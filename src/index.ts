@@ -33,7 +33,10 @@ export class ShopifyStorefront {
         return result.join(`\n`);
     }
 
-    private static checkResponse(data) {
+    private static checkResponse(status, data) {
+        if (status === 403) {
+            return ResultFail(new Error(`Check storefront access token and its permissions. Status code: ${status}.`));
+        }
         if (data.errors) {
             return ResultFail(data.errors[0].message);
         }
@@ -79,9 +82,9 @@ export class ShopifyStorefront {
 
         const payload = {query, variables};
 
-        const {data} = (await this.instance.post('/api/2021-01/graphql.json', payload)).unwrap();
+        const {status, data} = (await this.instance.post('/api/2021-01/graphql.json', payload)).unwrap();
 
-        const response = (await ShopifyStorefront.checkResponse(data)).unwrap();
+        const response = (await ShopifyStorefront.checkResponse(status, data)).unwrap();
 
         return ResultOk(response.checkoutCreate.checkout);
     }
@@ -123,9 +126,9 @@ export class ShopifyStorefront {
 
         const payload = {query};
 
-        const {data} = (await this.instance.post('/api/2021-01/graphql.json', payload)).unwrap();
+        const {status, data} = (await this.instance.post('/api/2021-01/graphql.json', payload)).unwrap();
 
-        const response = (await ShopifyStorefront.checkResponse(data)).unwrap();
+        const response = (await ShopifyStorefront.checkResponse(status, data)).unwrap();
 
         return ResultOk(response.node);
     }
@@ -165,9 +168,9 @@ export class ShopifyStorefront {
 
         const payload = {query, variables};
 
-        const {data} = (await this.instance.post('/api/2021-01/graphql.json', payload)).unwrap();
+        const {status, data} = (await this.instance.post('/api/2021-01/graphql.json', payload)).unwrap();
 
-        const response = (await ShopifyStorefront.checkResponse(data)).unwrap();
+        const response = (await ShopifyStorefront.checkResponse(status, data)).unwrap();
 
         return ResultOk(response.checkoutShippingLineUpdate.checkout);
     }

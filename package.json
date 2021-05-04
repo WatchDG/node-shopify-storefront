@@ -20,7 +20,7 @@
   "scripts": {
     "lint": "eslint --ext=ts src",
     "build": "npx tsc",
-    "run": "npx ts-node src/index.ts",
+    "run": "npx ts-node src/main.ts",
     "prepare": "npm run build"
   },
   "dependencies": {
